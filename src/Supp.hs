@@ -9,7 +9,14 @@ module Supp ( myLast
               , myEncode
               , myEncode'
               , myDecode
-              , myEncodeDirect ) where
+              , myEncodeDirect
+              , myDuplicate
+              , myDuplicateBy
+              , dropNth
+              , splitByNth
+              , mySlice
+              , myRotate
+              , removeKth ) where
 
 -- 1. last element in list (without last')
 myLast :: [a] -> a
@@ -118,3 +125,58 @@ myEncodeDirect lst = foldl f [] lst
             (init acc) ++ [(eval l x)]
           else
             acc ++ [(eval l x)]
+
+-- 14. Duplicate items in a list
+myDuplicate :: [a] -> [a]
+myDuplicate lst = concatMap (\x -> [x,x]) lst
+
+-- 15. Replicate elements by a given number
+myDuplicateBy :: Int -> [a] -> [a]
+myDuplicateBy n lst = concatMap (\x -> take n (repeat x)) lst
+
+-- 16. Drop the n'th element in a list, not Zero index
+dropNth :: Int -> [a] -> [a]
+dropNth _ [] = error "Empty list given"
+dropNth n lst =
+  if length lst < n then
+    error "given index is out of range"
+  else
+    (take (n-1) lst) ++ (drop n lst)
+
+-- 17. Split a list into 2 parts by the given index
+splitByNth :: Int -> [a] -> [[a]]
+splitByNth _ [] = error "Empty List given"
+splitByNth n lst =
+  if length lst < n then
+    error "given index is out of range"
+  else
+    [(take n lst), (drop n lst)]
+
+-- 18. Extract a slice from a list, not zero indexed
+mySlice :: Int -> Int -> [a] -> [a]
+mySlice strt end lst =
+  if strt <= 0 || strt > end || (end > length lst) then
+    error "Bad limits given"
+  else
+    let
+      findex = strt - 1
+      lindex = end - strt + 1
+    in
+      take lindex $ drop findex lst
+
+-- 19. Rotate a list by N
+myRotate :: Int -> [a] -> [a]
+myRotate n lst =
+  if n < 0 || n > length lst then
+    error "Bad N given"
+  else
+    (drop n lst) ++ (take n lst)
+
+-- 20. Remove the K'th element from a list, not zero indexed
+removeKth :: Int -> [a] -> [a]
+removeKth _ [] = error "Empty list given"
+removeKth k lst =
+  if k <= 0 || k > length lst then
+    error "Bad K given"
+  else
+    (init $ take k lst) ++ (drop k lst)
