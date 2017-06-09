@@ -16,7 +16,23 @@ module Supp ( myLast
               , splitByNth
               , mySlice
               , myRotate
-              , removeKth ) where
+              , removeKth
+              , insertAt
+              , myRange
+              , rndSelect
+              , drawN
+              , randPerm
+              , combinations
+              , calculatePermuations
+              , subset
+              , sortByLength
+              , sortByLF ) where
+import System.Random
+import Control.Monad
+import Data.Maybe
+import Data.List
+import Data.Traversable
+import Data.Map (empty, unionWith, insertWith, (!))
 
 -- 1. last element in list (without last')
 myLast :: [a] -> a
@@ -42,6 +58,7 @@ myLength :: [a] -> Int
 myLength [] = 0
 myLength [a] = 1
 myLength (x:xs) = 1 + myLength xs
+
 
 -- 5. Reverse a list (without reverse)
 myReverse :: [a] -> [a]
@@ -174,9 +191,86 @@ myRotate n lst =
 
 -- 20. Remove the K'th element from a list, not zero indexed
 removeKth :: Int -> [a] -> [a]
-removeKth _ [] = error "Empty list given"
-removeKth k lst =
-  if k <= 0 || k > length lst then
-    error "Bad K given"
-  else
-    (init $ take k lst) ++ (drop k lst)
+removeKth k lst
+  | length lst == 0 = error "Empty list given"
+  |  k <= 0 || k > length lst =  error "Bad K given"
+  | otherwise =  (init $ take k lst) ++ (drop k lst)
+
+-- 21. Add element at the Nth position
+insertAt :: a -> Int -> [a] -> [a]
+insertAt elem inx lst
+  | inx > length lst = error "Invalid index"
+  | otherwise = (take (inx-1) lst) ++ [elem] ++ (drop (inx-1) lst)
+
+-- 22. Create a list given the range
+myRange :: Int -> Int -> [Int]
+myRange l r
+  | r < l  || l < 0 = error "Invalid Ranges"
+  | otherwise = [l..r]
+
+-- 23. Extract a given number of randomly selected items from the list (Accidently removes N number of elements, install )
+rndSelect :: Foldable t => Int -> t a -> IO [a]
+rndSelect n lst
+  | n > length lst = error "Invalid number given"
+  | length lst == 0 = error "Empty list"
+  | otherwise = do
+      randList <- forM [0..length lst] $ \_i -> randomRIO (0,(length lst) - 1)
+      let indexes = sort $ take n $ nub $ randList
+      -- putStrLn $ "Indexes generated: " ++ (show indexes)
+      let (_, ret) = foldl (\acc elem-> rndSelectHelper acc (elemIndex (fst acc) indexes) elem) (0, []) lst
+      return ret
+      where
+        rndSelectHelper (itr, lst) Nothing elem = (itr+1, lst)
+        rndSelectHelper (itr, lst) (Just pIx) elem = (itr+1, lst ++ [elem])
+
+-- 24. Draw N numbers from 1..M
+drawN :: (Eq a, System.Random.Random a, Enum a, Num a) => Int -> a -> IO [a]
+drawN n m
+  | n < 0 = error "Bad N"
+  | otherwise = do
+      randList <- forM [1..m] $ \_i -> randomRIO (0,m)
+      return $ take n $ nub $ randList
+
+-- 25. Generate a random permutation of a given
+randPerm :: [a] -> IO [a]
+randPerm lst = do
+  tmp <- rndSelect 1 $ permutations lst
+  return $ head tmp
+
+-- 26. generate a list of unique N combinations
+combinations :: Eq a => Int -> [a] -> [[a]]
+combinations n lst = filter ((n==).length.nub) $ mapM (const lst) [1..n]
+
+calculatePermuations :: Int -> Int -> Int -- This calculate the number of permutations of combinations without repetition
+calculatePermuations numElems numChosen = (factorial numElems) `div` factorial (numElems - numChosen)
+  where factorial x = foldl (*) 1 [1..x]
+
+-- 27. Group elements of a set into disjoint subsets
+subset [] _ = []
+subset lst grps =
+  let
+    perms = permutations lst
+  in
+    map (\perm -> fun perm grps) perms
+  where
+    fun p [i] = [take i p]
+    fun p (i:ixs) =
+      let
+        (fp, rp) = splitAt i p
+      in
+        fp:(fun rp ixs)
+
+-- 28. Sort a list of lists by length of list
+sortByLength :: [[a]] -> [[a]]
+sortByLength = sortBy (\x y -> length x `compare` length y)
+
+-- 28b. Sort by length frequency
+-- sortByLF :: [[a]] ->  [[a]]
+sortByLF lst =
+  let
+    frequencyTable = createTable empty lst
+  in
+    Data.List.sortBy (\x y -> (frequencyTable ! (show $ length x)) `compare` (frequencyTable ! (show $ length y))) lst
+  where
+    createTable pMap [] = pMap
+    createTable pMap (x:xs) = unionWith (\x y -> x + y) (insertWith (\x y-> x + 1) (show $ length x) 1 pMap) $  createTable pMap xs
